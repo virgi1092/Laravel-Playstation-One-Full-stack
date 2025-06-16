@@ -127,6 +127,7 @@ class RentalController extends Controller
             ]);
 
             // Buat detail penyewaan dan kurangi stok
+            // Ganti dengan:
             foreach ($request->detail_penyewaans as $detail) {
                 $playstation = PlayStation::find($detail['id_playstation']);
 
@@ -135,7 +136,7 @@ class RentalController extends Controller
                     throw new \Exception("Stok {$playstation->nama_playstation} tidak mencukupi");
                 }
 
-                // Buat detail penyewaan
+                // Buat detail penyewaan saja, stok akan dikurangi oleh Observer
                 DetailPenyewaan::create([
                     'id_penyewaan' => $penyewaan->id,
                     'id_playstation' => $detail['id_playstation'],
@@ -143,9 +144,6 @@ class RentalController extends Controller
                     'durasi_sewa' => $detail['durasi_sewa'],
                     'total_harga' => $detail['total_harga'],
                 ]);
-
-                // Kurangi stok
-                $playstation->decrement('stok', $detail['jumlah']);
             }
 
             DB::commit();

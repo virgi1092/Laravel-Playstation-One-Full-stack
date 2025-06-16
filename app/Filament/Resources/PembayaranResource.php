@@ -91,7 +91,7 @@ class PembayaranResource extends Resource
                                         $details = $penyewaan->detailPenyewaans->map(function ($detail) {
                                             $stokTersedia = $detail->playstation->stok;
                                             $statusStok = $stokTersedia >= $detail->jumlah ? '✅' : '❌';
-                                            
+
                                             return $detail->playstation->nama_playstation .
                                                 ' - Jumlah: ' . $detail->jumlah .
                                                 ' - Durasi: ' . $detail->durasi_sewa . ' hari' .
@@ -156,7 +156,7 @@ class PembayaranResource extends Resource
                             ->options([
                                 'Tunai' => 'Tunai',
                                 'E-Wallet' => 'E-Wallet',
-                                'Transfer' => 'Transfer Bank',
+                                'Transfer' => 'Transfer',
                             ])
                             ->required(),
 
@@ -246,23 +246,16 @@ class PembayaranResource extends Resource
                     ->label('Jumlah Bayar')
                     ->money('IDR'),
 
+
                 Tables\Columns\TextColumn::make('metode_bayar')
                     ->label('Metode')
                     ->badge()
                     ->color(fn(string $state): string => match ($state) {
                         'Tunai' => 'success',
                         'E-Wallet' => 'warning',
-                        'Transfer' => 'primary',
-                    }),
-
-                Tables\Columns\TextColumn::make('status')
-                    ->badge()
-                    ->color(fn(string $state): string => match ($state) {
-                        'pending' => 'warning',
-                        'selesai' => 'success',
+                        'Transfer' => 'primary', // Sesuaikan dengan value dari Select
                         default => 'gray',
                     }),
-
                 Tables\Columns\TextColumn::make('penyewaan.status')
                     ->label('Status Penyewaan')
                     ->badge()
@@ -320,7 +313,7 @@ class PembayaranResource extends Resource
                                 'status' => 'selesai',
                                 'is_paid' => true
                             ]);
-                            
+
                             Notification::make()
                                 ->title('Pembayaran berhasil diselesaikan')
                                 ->success()

@@ -22,7 +22,7 @@ class PembayaranObserver
         if ($pembayaran->status === 'pending') {
             $this->handlePendingPayment($pembayaran);
         }
-        
+
         // Jika langsung dibuat dengan status selesai
         if ($pembayaran->status === 'selesai') {
             $this->handleCompletedPayment($pembayaran);
@@ -47,7 +47,7 @@ class PembayaranObserver
         if ($oldStatus === 'pending' && $newStatus === 'selesai') {
             $this->handlePaymentCompleted($pembayaran);
         }
-        
+
         // Jika status berubah dari selesai ke pending (rollback)
         if ($oldStatus === 'selesai' && $newStatus === 'pending') {
             $this->handlePaymentRollback($pembayaran);
@@ -73,7 +73,7 @@ class PembayaranObserver
     public function restored(Pembayaran $pembayaran): void
     {
         Log::info('PembayaranObserver: restored event triggered');
-        
+
         // Terapkan kembali logika sesuai status
         if ($pembayaran->status === 'pending') {
             $this->handlePendingPayment($pembayaran);
@@ -88,7 +88,7 @@ class PembayaranObserver
     private function handlePendingPayment(Pembayaran $pembayaran): void
     {
         $penyewaan = $pembayaran->penyewaan;
-        
+
         if (!$penyewaan) {
             Log::warning('Penyewaan not found for pembayaran', ['pembayaran_id' => $pembayaran->id]);
             return;
@@ -98,11 +98,12 @@ class PembayaranObserver
         if ($penyewaan->status === 'pinjam') {
             $penyewaan->update(['status' => 'proses']);
             Log::info('Penyewaan status updated to proses', ['penyewaan_id' => $penyewaan->id]);
-            
-            // Kurangi stok PlayStation
+
+            // Kurangi stok PlayStation hanya jika belum dikurangi
             $this->decreasePlaystationStock($penyewaan);
         }
     }
+
 
     /**
      * Handle pembayaran langsung selesai
@@ -110,34 +111,37 @@ class PembayaranObserver
     private function handleCompletedPayment(Pembayaran $pembayaran): void
     {
         $penyewaan = $pembayaran->penyewaan;
-        
+
         if (!$penyewaan) {
             Log::warning('Penyewaan not found for pembayaran', ['pembayaran_id' => $pembayaran->id]);
             return;
         }
 
-        // Jika dari pinjam langsung ke selesai
+        // Jika dari pinjam langsung ke selesai (tidak perlu kurangi stok lagi)
         if ($penyewaan->status === 'pinjam') {
+            // Kurangi stok dulu baru update status
+            $this->decreasePlaystationStock($penyewaan);
             $penyewaan->update(['status' => 'kembali']);
             Log::info('Penyewaan status updated to kembali (direct)', ['penyewaan_id' => $penyewaan->id]);
+            // Kembalikan stok karena sudah selesai
+            $this->increasePlaystationStock($penyewaan);
         }
         // Jika dari proses ke selesai
         elseif ($penyewaan->status === 'proses') {
             $penyewaan->update(['status' => 'kembali']);
             Log::info('Penyewaan status updated to kembali', ['penyewaan_id' => $penyewaan->id]);
-            
+
             // Kembalikan stok PlayStation
             $this->increasePlaystationStock($penyewaan);
         }
     }
-
     /**
      * Handle perubahan status dari pending ke selesai
      */
     private function handlePaymentCompleted(Pembayaran $pembayaran): void
     {
         $penyewaan = $pembayaran->penyewaan;
-        
+
         if (!$penyewaan) {
             Log::warning('Penyewaan not found for pembayaran', ['pembayaran_id' => $pembayaran->id]);
             return;
@@ -147,7 +151,7 @@ class PembayaranObserver
         if ($penyewaan->status === 'proses') {
             $penyewaan->update(['status' => 'kembali']);
             Log::info('Penyewaan status updated to kembali', ['penyewaan_id' => $penyewaan->id]);
-            
+
             // Kembalikan stok PlayStation
             $this->increasePlaystationStock($penyewaan);
         }
@@ -159,7 +163,7 @@ class PembayaranObserver
     private function handlePaymentRollback(Pembayaran $pembayaran): void
     {
         $penyewaan = $pembayaran->penyewaan;
-        
+
         if (!$penyewaan) {
             Log::warning('Penyewaan not found for pembayaran', ['pembayaran_id' => $pembayaran->id]);
             return;
@@ -169,7 +173,7 @@ class PembayaranObserver
         if ($penyewaan->status === 'kembali') {
             $penyewaan->update(['status' => 'proses']);
             Log::info('Penyewaan status rolled back to proses', ['penyewaan_id' => $penyewaan->id]);
-            
+
             // Kurangi lagi stok PlayStation (karena sebelumnya sudah dikembalikan)
             $this->decreasePlaystationStock($penyewaan);
         }
@@ -181,7 +185,7 @@ class PembayaranObserver
     private function handlePaymentDeletion(Pembayaran $pembayaran): void
     {
         $penyewaan = $pembayaran->penyewaan;
-        
+
         if (!$penyewaan) {
             Log::warning('Penyewaan not found for deleted pembayaran', ['pembayaran_id' => $pembayaran->id]);
             return;
@@ -192,7 +196,7 @@ class PembayaranObserver
             // Kembalikan status penyewaan ke 'pinjam'
             $penyewaan->update(['status' => 'pinjam']);
             Log::info('Penyewaan status restored to pinjam', ['penyewaan_id' => $penyewaan->id]);
-            
+
             // Kembalikan stok PlayStation
             $this->increasePlaystationStock($penyewaan);
         }
@@ -205,7 +209,7 @@ class PembayaranObserver
     {
         foreach ($penyewaan->detailPenyewaans as $detail) {
             $playstation = $detail->playstation;
-            
+
             if (!$playstation) {
                 Log::warning('PlayStation not found for detail', ['detail_id' => $detail->id]);
                 continue;
@@ -215,7 +219,7 @@ class PembayaranObserver
             if ($playstation->stok >= $detail->jumlah) {
                 $oldStock = $playstation->stok;
                 $playstation->decrement('stok', $detail->jumlah);
-                
+
                 Log::info('PlayStation stock decreased', [
                     'playstation_id' => $playstation->id,
                     'nama_playstation' => $playstation->nama_playstation,
@@ -230,7 +234,7 @@ class PembayaranObserver
                     'current_stock' => $playstation->stok,
                     'required' => $detail->jumlah
                 ]);
-                
+
                 // Opsional: Throw exception atau handle error
                 throw new \Exception("Stok PlayStation {$playstation->nama_playstation} tidak mencukupi. Stok tersedia: {$playstation->stok}, dibutuhkan: {$detail->jumlah}");
             }
@@ -244,7 +248,7 @@ class PembayaranObserver
     {
         foreach ($penyewaan->detailPenyewaans as $detail) {
             $playstation = $detail->playstation;
-            
+
             if (!$playstation) {
                 Log::warning('PlayStation not found for detail', ['detail_id' => $detail->id]);
                 continue;
@@ -252,7 +256,7 @@ class PembayaranObserver
 
             $oldStock = $playstation->stok;
             $playstation->increment('stok', $detail->jumlah);
-            
+
             Log::info('PlayStation stock increased', [
                 'playstation_id' => $playstation->id,
                 'nama_playstation' => $playstation->nama_playstation,

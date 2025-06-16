@@ -221,22 +221,36 @@
                 </div>
             </div>
             <script>
+                // JavaScript untuk menangani pemilihan metode pembayaran
                 document.addEventListener('DOMContentLoaded', function() {
                     const paymentOptions = document.querySelectorAll('.payment-option');
-                    const paymentMethodInput = document.getElementById('payment_method');
+                    const metodeBayarInput = document.getElementById('metode_bayar');
 
                     paymentOptions.forEach(option => {
                         option.addEventListener('click', function() {
-                            // Remove active class from all options
+                            // Hapus class active dari semua option
                             paymentOptions.forEach(opt => opt.classList.remove('active'));
 
-                            // Add active class to clicked option
+                            // Tambah class active ke option yang dipilih
                             this.classList.add('active');
 
-                            // Update hidden input value
-                            paymentMethodInput.value = this.dataset.method;
+                            // Update nilai input hidden
+                            const selectedMethod = this.getAttribute('data-method');
+                            metodeBayarInput.value = selectedMethod;
+
+                            // Debug - untuk memastikan nilai ter-update (bisa dihapus nanti)
+                            console.log('Metode pembayaran dipilih:', selectedMethod);
                         });
                     });
+
+                    // Optional: Tambahkan event listener untuk form submit untuk debug
+                    const form = document.querySelector('form'); // Sesuaikan dengan selector form Anda
+                    if (form) {
+                        form.addEventListener('submit', function(e) {
+                            console.log('Nilai metode_bayar saat submit:', metodeBayarInput.value);
+                            // Jangan preventDefault() jika ingin form ter-submit normal
+                        });
+                    }
                 });
             </script>
         </div>

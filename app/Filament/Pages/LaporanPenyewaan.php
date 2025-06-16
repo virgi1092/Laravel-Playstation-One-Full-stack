@@ -113,13 +113,13 @@ class LaporanPenyewaan extends Page implements HasTable, HasForms
                     ->label('Metode Pembayaran')
                     ->getStateUsing(function ($record) {
                         $pembayaran = $record->pembayaran->first();
-                        return $pembayaran ? ucfirst($pembayaran->metode_bayar) : '-';
+                        return $pembayaran ? $pembayaran->metode_bayar : '-';
                     })
                     ->badge()
-                    ->color(fn (string $state): string => match (strtolower($state)) {
+                    ->color(fn(string $state): string => match ($state) {
                         'Tunai' => 'success',
-                        'E-Wallet' => 'info',
-                        'Transfer' => 'warning',
+                        'E-Wallet' => 'warning',
+                        'Transfer' => 'primary', // Sesuaikan dengan value dari Select
                         default => 'gray',
                     }),
             ])
@@ -183,7 +183,7 @@ class LaporanPenyewaan extends Page implements HasTable, HasForms
     {
         try {
             $data = $this->getTableQuery()->get();
-            
+
             if ($data->isEmpty()) {
                 Notification::make()
                     ->title('Tidak Ada Data')
@@ -195,7 +195,7 @@ class LaporanPenyewaan extends Page implements HasTable, HasForms
 
             $tanggalDari = $this->data['tanggal_dari'] ? Carbon::parse($this->data['tanggal_dari'])->format('d/m/Y') : 'Semua';
             $tanggalSampai = $this->data['tanggal_sampai'] ? Carbon::parse($this->data['tanggal_sampai'])->format('d/m/Y') : 'Semua';
-            
+
             $totalPendapatan = $data->sum(function ($penyewaan) {
                 return $penyewaan->detailPenyewaans->sum('total_harga');
             });
@@ -217,11 +217,10 @@ class LaporanPenyewaan extends Page implements HasTable, HasForms
                 ->send();
 
             return response()->streamDownload(
-                fn () => print($pdf->output()),
+                fn() => print($pdf->output()),
                 $filename,
                 ['Content-Type' => 'application/pdf']
             );
-
         } catch (\Exception $e) {
             Notification::make()
                 ->title('Export Gagal')

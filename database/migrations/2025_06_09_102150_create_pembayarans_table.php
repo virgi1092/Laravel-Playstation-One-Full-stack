@@ -13,7 +13,7 @@ return new class extends Migration
     {
         Schema::create('pembayarans', function (Blueprint $table) {
             $table->id();
-            $table->string('pby_id')->unique()->after('id');
+            $table->string('pby_id')->unique(); // Hapus ->after('id')
             $table->foreignId('id_penyewaan')->constrained('penyewaans')->onDelete('cascade');
             $table->integer('jumlah_bayar');
             $table->enum('metode_bayar', ['Tunai', 'E-Wallet', 'Transfer']);
