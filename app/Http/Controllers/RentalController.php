@@ -3,7 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Rental;
-use App\Models\PlayStation;
+use App\Models\Playstation;
 use App\Models\DetailPenyewaan;
 use App\Models\Penyewaan;
 use Illuminate\Support\Facades\Validator;
@@ -22,7 +22,7 @@ class RentalController extends Controller
 
     public function create()
     {
-        $playstations = PlayStation::where('stok', '>', 0)->get();
+        $playstations = Playstation::where('stok', '>', 0)->get();
         return view('frontend.rental.create', compact('playstations'));
     }
 
