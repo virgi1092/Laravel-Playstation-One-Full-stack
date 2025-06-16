@@ -13,6 +13,21 @@ export default defineConfig({
         port: 5173,
         hmr: {
             host: '127.0.0.1'
+        },
+        watch: {
+            // Exclude directories yang tidak perlu di-watch
+            ignored: [
+                '**/vendor/**',
+                '**/node_modules/**',
+                '**/storage/**',
+                '**/public/build/**',
+                '**/.git/**',
+                '**/bootstrap/cache/**'
+            ]
         }
+    },
+    // Tambahan konfigurasi watcher
+    optimizeDeps: {
+        exclude: ['laravel-vite-plugin']
     }
 });
